@@ -1,0 +1,8 @@
+{
+  "name": "file",
+  "version": "1.0.2",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "progress-stream": "^2.0.0"
+  }
+}

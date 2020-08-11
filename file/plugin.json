@@ -1,0 +1,24 @@
+{
+  "pluginName": "文件加密",
+  "description": "文件加密",
+  "version": "1.0.3",
+  "author": "xiaou",
+  "main": "vue/index.html",
+  "preload": "preload.js",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "file",
+      "explain": "文件加密",
+      "cmds": [
+        "文件加密",
+        {
+          "type": "files",
+          "label": "文件加密",
+          "fileType": "file",
+          "minNum": 1
+        }
+      ]
+    }
+  ]
+}
