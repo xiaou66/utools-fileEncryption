@@ -29,8 +29,10 @@
           </a-radio-group>
       </span>
         <span slot="action" slot-scope="_, record">
-          <a-button @click="removeItem(record)" type="link">移除</a-button>
-          <a-button @click="openFilePosition(record)" type="link">位置</a-button>
+          <div style="display: flex">
+            <a-button @click="removeItem(record)" type="link">移除</a-button>
+            <a-button style="padding-left: 5px;" @click="openFilePosition(record)" type="link">位置</a-button>
+          </div>
         </span>
       </a-table>
     </div>
@@ -72,7 +74,7 @@ const columns = [
     title: '操作',
     key: 'action',
     scopedSlots: { customRender: 'action' },
-    width: 100
+    width: 130
   }
 ]
 
