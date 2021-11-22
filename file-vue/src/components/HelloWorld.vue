@@ -3,11 +3,22 @@
     <a-row type="flex" justify="center" >
       <a-col :span="2" style="line-height: 32px;">总控制</a-col>
       <a-col :span="12"><a-input v-model="totalValue" @change="totalControl"></a-input></a-col>
-      <a-col :span="2" :push="1"><a-button :loading="loading" @click="start">开始</a-button></a-col>
-      <a-col :span="1" :push="1" style="margin-left: 5px;"><a-button  @click="openFile">增加文件</a-button></a-col>
+      <a-col :span="6" :push="1">
+        <div style="display: flex;justify-content: center;">
+          <a-button :loading="loading" @click="start">开始</a-button>
+          <a-button  @click="openFile" style="margin: 0 10px">增加文件</a-button>
+          <a-button  @click="clearFiles">清理</a-button>
+        </div>
+      </a-col>
     </a-row>
+    <div style="font-size: 24px">
+      <a-progress :percent="totalProgress" :show-info="false" :stroke-color="{
+        '0%': '#108ee9',
+        '100%': '#87d068',
+      }"/>
+    </div>
     <div style="max-height: 80vh; overflow-y: auto">
-      <a-table :columns="columns" :dataSource="files" :pagination="false" style="padding-top: 10px;">
+      <a-table :columns="columns" :dataSource="files" :pagination="false">
       <span slot="code" slot-scope="_, record">
         <a-input v-model="record.code"></a-input>
       </span>
@@ -17,20 +28,27 @@
             <a-radio value="decode">解密</a-radio>
           </a-radio-group>
       </span>
+        <span slot="action" slot-scope="_, record">
+          <a-button @click="removeItem(record)" type="link">移除</a-button>
+          <a-button @click="openFilePosition(record)" type="link">位置</a-button>
+        </span>
       </a-table>
     </div>
-    <div style="position:absolute;user-select: none; bottom: 0; line-height: 60px; left: 50%; transform: translateX(-50%);cursor: pointer;" @click="help">请开发者喝咖啡</div>
   </div>
 </template>
 
 <script>
-import uToolsUtils from '../js/uToolsUtils'
-
+import uuidv1 from 'uuid/v1'
+import {
+  enable as enableDarkMode,
+  disable as disableDarkMode
+} from 'darkreader'
 const columns = [
   {
     title: '文件名',
     dataIndex: 'name',
-    key: 'name'
+    key: 'name',
+    ellipsis: true
   },
   {
     title: '密码',
@@ -47,7 +65,14 @@ const columns = [
   {
     title: '状态',
     dataIndex: 'status',
-    key: 'status'
+    key: 'status',
+    width: 100
+  },
+  {
+    title: '操作',
+    key: 'action',
+    scopedSlots: { customRender: 'action' },
+    width: 100
   }
 ]
 
@@ -58,31 +83,93 @@ export default {
       columns,
       files: [],
       totalValue: '',
-      loading: false
-
+      loading: false,
+      notification: false
+    }
+  },
+  computed: {
+    totalProgress () {
+      const rw = this.files.filter(file => file.status !== '未完成')
+      if (rw.length === 0) {
+        return 0
+      }
+      const total = rw.reduce((pre, item) => {
+        if (item.status === '完成') {
+          return pre + 100
+        }
+        return pre + parseInt(item.status)
+      }, 0)
+      const value = Math.round((total / (100 * rw.length) * 100))
+      // return total
+      if (value === 100 && this.notification) {
+        this.sendNotification()
+      }
+      return value
     }
   },
   created () {
     // eslint-disable-next-line no-undef
     utools.onPluginReady(() => {
-      uToolsUtils.isNewVersion()
+      this.files = []
     })
     // eslint-disable-next-line no-undef
     utools.onPluginEnter(({ code, type, payload }) => {
-      console.log('11111111111111')
-      this.files = []
+      this.notification = false
+      if (window.utools.isDarkColors()) {
+        enableDarkMode({
+          darkSchemeBackgroundColor: '#303133'
+        })
+      } else {
+        disableDarkMode()
+      }
       if (code === 'file') {
         this.filePathHandler(payload)
       }
     })
+    // eslint-disable-next-line no-undef
+    utools.onPluginOut(() => {
+      if (this.files.filter(item => item.status !== '未完成' && item.status !== '完成').length) {
+        this.notification = true
+      }
+    })
   },
   methods: {
+    openFilePosition ({ path }) {
+      // eslint-disable-next-line no-undef
+      utools.shellShowItemInFolder(path)
+    },
+    sendNotification () {
+      // eslint-disable-next-line no-undef
+      utools.showNotification('文件加密任务已经完成')
+      this.notification = false
+    },
+    clearFiles () {
+      const runFiles = this.files.filter(item => item.status !== '未完成' && item.status !== '完成')
+      this.files.length = 0
+      this.files.push(...runFiles)
+      this.$message.success('清空了完成和未完成的加密任务')
+    },
+    removeItem ({ key }) {
+      const index = this.files.findIndex(item => item.key === key)
+      if (index !== -1) {
+        this.files.splice(index, 1)
+      }
+    },
     filePathHandler (files) {
+      let tips = false
       this.files.push(...files.map((item) => {
-        const file = { key: `t${Date.now()}`, name: item.name, path: item.path, code: '', status: '未完成' }
+        const index = this.files.findIndex(i => i.path === item.path)
+        if (index !== -1) {
+          tips = true
+          return {}
+        }
+        const file = { key: `t${uuidv1()}`, name: item.name, path: item.path, code: '', status: '未完成' }
         file.mode = item.name.includes('.xu') ? 'decode' : 'encode'
         return file
-      }))
+      }).filter(item => item.key))
+      if (tips) {
+        this.$message.warning('存在相同任务已经过滤')
+      }
     },
     openFile () {
       const files = window.openFile()
@@ -93,11 +180,15 @@ export default {
       this.filePathHandler(files)
     },
     start () {
+      if (!this.files.length) {
+        this.$message.warning('文件列表为空')
+      }
       if (this.files.findIndex(item => item.code === '') !== -1) {
         this.$message.warning('有密码没有输入请检查')
         return
       }
-      this.files.map((item, index) => {
+      this.files.filter(item => item.status === '未完成').map((item) => {
+        const index = this.files.findIndex(i => i.key === item.key)
         if (item.mode === 'encode') {
           const key = item.code.MD5(16)
           window.xencode('aes-128-cbc', item.path, key, item.code.MD5(), (progress) => {

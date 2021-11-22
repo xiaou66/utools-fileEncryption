@@ -25,3 +25,4 @@ src/tool/
 *.map
 src/scss/**/*.css
 src/scss/**/*.map
+vue

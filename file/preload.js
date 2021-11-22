@@ -10,9 +10,10 @@ window.openFile = () => {
   if (!paths) {
     return paths
   }
+  debugger;
   return paths.map(filePath => {
     const file = {}
-    file.name = path.basename(filePath) + path.extname(filePath)
+    file.name = path.basename(filePath);
     file.path = filePath
     return file
   })
@@ -24,15 +25,17 @@ window.xencode = (by, filePath, key, iv, callback) => {
     const readStream = fs.createReadStream(filePath);
     const writeStream = fs.createWriteStream(filePath + ".xu");
     if (callback) {
-      const progress = progressStream({
-        time: 100
-      });
-      progress.on('progress', function (progress) {
-        callback(Math.round(progress.percentage) + '%')
-      });
+      let totalSize = fs.statSync(filePath).size;
+      let curSize = 0;
+      let percent = '0%';
       readStream
+        .on('data', (chunk) => {
+          curSize += chunk.length
+          // 将已经读取到的字节数 / 总字节数 * 100 = 百分比
+          percent = (curSize / totalSize * 100).toFixed(2) + '%';
+          callback(percent);
+        })
         .pipe(encryptStream) // 加密
-        .pipe(progress)
         .pipe(writeStream)
         .on("finish", function () {
           resolve("完成");
@@ -55,16 +58,19 @@ window.xdecode = (by, filePath, key, iv, callback) => {
     });
     const readStream = fs.createReadStream(filePath);
     const writeStream = fs.createWriteStream(filePath.replace(".xu", ""));
+
     if (callback) {
-      const progress = progressStream({
-        time: 200
-      });
-      progress.on('progress', function (progress) {
-        callback(Math.round(progress.percentage) + '%')
-      });
+      let totalSize = fs.statSync(filePath).size;
+      let curSize = 0;
+      let percent = '0%';
       readStream
+        .on('data', (chunk) => {
+          curSize += chunk.length
+          // 将已经读取到的字节数 / 总字节数 * 100 = 百分比
+          percent = (curSize / totalSize * 100).toFixed(2) + '%';
+          callback(percent);
+        })
         .pipe(decryptStream) // 加密
-        .pipe(progress)
         .pipe(writeStream)
         .on("finish", function () {
           resolve("完成");
@@ -82,16 +88,4 @@ window.xdecode = (by, filePath, key, iv, callback) => {
 };
 window.openUrl = (url) => {
   utools.shellOpenExternal(url);
-};
-// 创建更新窗口
-window.createUpdateWindow = () => {
-  const optional = {
-    width: 800,
-    height: 600,
-    title: '更新说明',
-    transparent: false,
-    frame: true,
-    alwaysOnTop: true
-  }
-  const win = utools.createBrowserWindow("./README.html", optional);
 };
