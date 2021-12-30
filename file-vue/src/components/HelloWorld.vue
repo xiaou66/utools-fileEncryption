@@ -135,6 +135,26 @@ export default {
       }
     })
   },
+  mounted () {
+    document.addEventListener('dragstart', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+    })
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+    })
+    document.addEventListener('drop', (e) => {
+      e.preventDefault()
+      console.log(e)
+      const {
+        dataTransfer: { files }
+      } = e
+      if (files.length) {
+        this.filePathHandler(Array.from(files).filter(file => window.isFile(file.path)))
+      }
+    })
+  },
   methods: {
     openFilePosition ({ path }) {
       // eslint-disable-next-line no-undef
